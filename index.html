@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Smart Mall Parking System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#1f2c38;
+color:white;
+text-align:center;
+}
+
+h1{
+margin-top:20px;
+}
+
+.dashboard{
+margin:20px;
+font-size:18px;
+}
+
+.parking-area{
+margin:auto;
+width:95%;
+max-width:1200px;
+background:#2c3e50;
+padding:20px;
+border-radius:10px;
+}
+
+.zone{
+margin-top:25px;
+}
+
+.zone-title{
+font-size:20px;
+margin-bottom:10px;
+color:#f1c40f;
+}
+
+.row{
+display:flex;
+justify-content:center;
+flex-wrap:wrap;
+}
+
+.slot{
+width:65px;
+height:90px;
+margin:5px;
+border-radius:6px;
+border:2px solid white;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:11px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.free{
+background:#27ae60;
+}
+
+.taken{
+background:#c0392b;
+}
+
+.vip{
+border:3px solid gold;
+}
+
+.pwd{
+border:3px solid #3498db;
+}
+
+.highlight{
+background:#f1c40f !important;
+color:black;
+}
+
+.drive-lane{
+background:#7f8c8d;
+height:40px;
+margin:10px;
+line-height:40px;
+font-size:13px;
+}
+
+button{
+margin:8px;
+padding:10px 20px;
+border:none;
+background:#f39c12;
+color:white;
+font-weight:bold;
+cursor:pointer;
+border-radius:5px;
+}
+
+.info{
+margin-top:25px;
+background:#2c3e50;
+padding:20px;
+border-radius:10px;
+max-width:900px;
+margin-left:auto;
+margin-right:auto;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🏬 Smart Mall Parking System</h1>
+
+<div class="dashboard">
+
+Total Slots: <span id="total"></span> |
+Occupied: <span id="occupied"></span> |
+Available: <span id="available"></span>
+
+<br><br>
+
+Parking Time: <span id="timer">0</span> minutes
+
+</div>
+
+<div id="direction"></div>
+
+<div class="parking-area" id="parkingArea"></div>
+
+<br>
+
+<button onclick="findNearest()">Find Nearest Slot</button>
+<button onclick="calculateFee()">Show Parking Fee</button>
+<button onclick="resetParking()">Reset Parking</button>
+
+<div id="fee"></div>
+
+<div class="info">
+
+<h3>Advantages</h3>
+
+✔ Saves time<br>
+✔ Real-time availability<br>
+✔ Fuel and cost efficiency<br>
+✔ Avoids payment confusion
+
+<h3>Benefits</h3>
+
+✔ Convenience for users<br>
+✔ Better parking management<br>
+✔ Reduced traffic and pollution<br>
+✔ Exact parking fee calculation
+
+</div>
+
+<script>
+
+const zones=["A","B","C","D"]
+const rowsPerZone=2
+const slotsPerRow=10
+
+let slots=[]
+let occupied=0
+let parkingStart=null
+
+function createSlots(){
+
+let id=1
+
+zones.forEach(zone=>{
+
+for(let r=1;r<=rowsPerZone;r++){
+
+for(let s=1;s<=slotsPerRow;s++){
+
+let type="regular"
+
+if(s==1) type="pwd"
+if(s==10) type="vip"
+
+slots.push({
+
+id:"P"+id,
+zone:zone,
+row:r,
+type:type,
+taken:false
+
+})
+
+id++
+
+}
+
+}
+
+})
+
+}
+
+function renderParking(){
+
+const area=document.getElementById("parkingArea")
+area.innerHTML=""
+
+zones.forEach(zone=>{
+
+const zoneDiv=document.createElement("div")
+zoneDiv.className="zone"
+
+const title=document.createElement("div")
+title.className="zone-title"
+title.textContent="Zone "+zone
+
+zoneDiv.appendChild(title)
+
+let zoneSlots=slots.filter(s=>s.zone===zone)
+
+for(let r=1;r<=rowsPerZone;r++){
+
+const row=document.createElement("div")
+row.className="row"
+
+let rowSlots=zoneSlots.filter(s=>s.row===r)
+
+rowSlots.forEach(slot=>{
+
+const div=document.createElement("div")
+
+div.className="slot "+(slot.taken?"taken":"free")
+
+if(slot.type=="vip") div.classList.add("vip")
+if(slot.type=="pwd") div.classList.add("pwd")
+
+div.textContent=slot.id
+
+div.onclick=()=>toggleSlot(slot.id)
+
+row.appendChild(div)
+
+})
+
+zoneDiv.appendChild(row)
+
+const lane=document.createElement("div")
+lane.className="drive-lane"
+lane.textContent="Driving Lane"
+
+zoneDiv.appendChild(lane)
+
+}
+
+area.appendChild(zoneDiv)
+
+})
+
+updateStats()
+
+}
+
+function toggleSlot(id){
+
+const slot=slots.find(s=>s.id===id)
+
+if(slot.taken){
+
+slot.taken=false
+occupied--
+
+}else{
+
+slot.taken=true
+occupied++
+
+if(!parkingStart){
+
+parkingStart=new Date()
+
+}
+
+}
+
+renderParking()
+
+}
+
+function updateStats(){
+
+document.getElementById("total").textContent=slots.length
+document.getElementById("occupied").textContent=occupied
+document.getElementById("available").textContent=slots.length-occupied
+
+}
+
+function findNearest(){
+
+const freeSlot=slots.find(s=>!s.taken)
+
+if(!freeSlot){
+
+alert("Parking Full")
+return
+
+}
+
+document.getElementById("direction").innerHTML=
+
+"Nearest Slot: "+freeSlot.id+
+"<br>Zone: "+freeSlot.zone+
+"<br>Direction: Enter → go to Zone "+freeSlot.zone+" → Row "+freeSlot.row
+
+highlight(freeSlot.id)
+
+}
+
+function highlight(id){
+
+const divs=document.querySelectorAll(".slot")
+
+divs.forEach(d=>{
+
+if(d.textContent===id){
+
+d.classList.add("highlight")
+
+}
+
+})
+
+}
+
+function calculateFee(){
+
+if(!parkingStart){
+
+alert("No parking record")
+return
+
+}
+
+const now=new Date()
+
+const minutes=Math.ceil((now-parkingStart)/60000)
+
+let hours=Math.ceil(minutes/60)
+
+let fee=40
+
+if(hours>2){
+
+fee=40+(hours-2)*20
+
+}
+
+document.getElementById("fee").innerHTML=
+
+"Parking Time: "+minutes+" minutes"+
+"<br>Total Fee: ₱"+fee
+
+}
+
+function resetParking(){
+
+slots.forEach(s=>s.taken=false)
+
+occupied=0
+parkingStart=null
+
+document.getElementById("fee").innerHTML=""
+document.getElementById("direction").innerHTML=""
+
+renderParking()
+
+}
+
+createSlots()
+renderParking()
+
+setInterval(()=>{
+
+if(parkingStart){
+
+const now=new Date()
+
+const minutes=Math.floor((now-parkingStart)/60000)
+
+document.getElementById("timer").textContent=minutes
+
+}
+
+},1000)
+
+</script>
+
+</body>
+</html>
